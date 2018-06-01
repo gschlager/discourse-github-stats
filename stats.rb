@@ -5,12 +5,13 @@ require_relative 'lib/octokit_provider'
 class GitHubStats
   ORG_NAME = 'discourse'
   MAIN_REPO = 'discourse/discourse'
+  INCLUDED_FORKS = ['discourse-akismet', 'discourse-signatures', 'discourse-sitemap']
 
   def initialize
     @client = OctokitProvider.create
   end
 
-  def calculate(start_tag_name, end_tag_name)
+  def calculate(start_tag_name, end_tag_name, verbose = false)
     puts "Calculating start and end date..."
     start_date, end_date = find_start_end_dates(start_tag_name, end_tag_name)
 
@@ -21,7 +22,7 @@ class GitHubStats
 
     puts "\n\nContributors (#{contributers.length}):"
     contributers.each do |name, contributor|
-      puts format_contributor(name, contributor)
+      puts format_contributor(name, contributor, verbose)
     end
 
   rescue StandardError => e
@@ -83,10 +84,19 @@ class GitHubStats
 
   def find_contributors(start_date, end_date, org_members)
     contributers = {}
+    ignored_repositories = []
 
     repositories(start_date).each do |repo|
-      puts "Reading commits for #{repo.full_name}..."
-      add_contributers(contributers, repo.full_name, start_date, end_date)
+      if repo.fork && !INCLUDED_FORKS.include?(repo.name)
+        ignored_repositories << repo.name
+      else
+        puts "Reading commits for #{repo.full_name}..."
+        add_contributers(contributers, repo.full_name, start_date, end_date)
+      end
+    end
+
+    unless ignored_repositories.empty?
+      puts "", "Ignored repositories: ", ignored_repositories
     end
 
     contributers
@@ -123,7 +133,7 @@ class GitHubStats
     end
   end
 
-  def format_contributor(name, contributor, verbose = false)
+  def format_contributor(name, contributor, verbose)
     count = contributor[:count].to_s.rjust(3, ' ')
     url = contributor[:url]
 
@@ -138,9 +148,10 @@ class GitHubStats
   end
 end
 
-if ARGV.length != 2
-  puts "Usage: bundle exec #{File.basename($0)} <start_tag> <end_tag>"
+if ARGV.length < 2 || ARGV.length > 3
+  puts "Usage: bundle exec #{File.basename($0)} <start_tag> <end_tag> [--verbose]"
   exit 0
 end
 
-GitHubStats.new.calculate(ARGV[0], ARGV[1])
+verbose = ARGV.fetch(2, "") == "--verbose"
+GitHubStats.new.calculate(ARGV[0], ARGV[1], verbose)
