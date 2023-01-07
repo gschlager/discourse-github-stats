@@ -2,16 +2,19 @@
 
 Prints a list of all contributors in https://github.com/discourse between to Discourse versions.
 
-Contributions in forked repositores are excluded -- with the exception of the ones [defined in `stats.rb`](https://github.com/gschlager/discourse-github-stats/blob/069f42182eba28d80613d163b92867397e3c909d/stats.rb#L8)
+Contributions in forked repositories are excluded -- with the exception of the ones defined in `stats.rb`.
+It also contains a list of former team members to exclude them from the contributor list during their time as team member.
 
 ### Usage
 ```bash
-bundle exec stats.rb <start_tag> <end_tag> [--verbose]
+stats.rb --start-tag TAG [--end-tag TAG] [--verbose] [--token TOKEN]
 ```
 
-The `--verbose` options lists the affected repositories for each contributor.
+* The `--end-tag` is optional. If it's missing it will use the current date instead of calculating the date based on the tag.
+* The `--verbose` options lists the affected repositories for each contributor.
 
 ##### Example:
 ```bash
-bundle exec ruby stats.rb v1.9.0 v2.0.0
+./stats.rb --start-tag v2.7.0 --end-tag v2.8.0
+./stats.rb --start-tag v2.8.0
 ```
