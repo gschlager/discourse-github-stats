@@ -1,11 +1,11 @@
 #!/usr/bin/ruby
-require 'optparse'
-require_relative 'lib/octokit_provider'
+require "optparse"
+require_relative "lib/octokit_provider"
 
 class GitHubStats
-  ORG_NAME = 'discourse'
-  MAIN_REPO = 'discourse/discourse'
-  INCLUDED_FORKS = ['discourse-akismet', 'discourse-signatures', 'discourse-sitemap']
+  ORG_NAME = "discourse"
+  MAIN_REPO = "discourse/discourse"
+  INCLUDED_FORKS = %w[discourse-akismet discourse-signatures discourse-sitemap]
 
   def initialize
     @client = OctokitProvider.create
@@ -18,13 +18,12 @@ class GitHubStats
     puts "Reading org members..."
     org_members = member_names
 
-    contributers = find_contributors(start_date, end_date, org_members)
+    contributors = find_contributors(start_date, end_date, org_members)
 
-    puts "\n\nContributors (#{contributers.length}):"
-    contributers.each do |name, contributor|
+    puts "\n\nContributors (#{contributors.length}):"
+    contributors.each do |name, contributor|
       puts format_contributor(name, contributor, verbose)
     end
-
   rescue StandardError => e
     STDERR.puts e.message
     exit(1)
@@ -38,7 +37,8 @@ class GitHubStats
     last_response = @client.last_response
 
     loop do
-      start_tag = tags.find { |tag| tag.name == start_tag_name } if start_tag.nil?
+      start_tag =
+        tags.find { |tag| tag.name == start_tag_name } if start_tag.nil?
       end_tag = tags.find { |tag| tag.name == end_tag_name } if end_tag.nil?
 
       break if (start_tag && end_tag) || last_response.rels[:next].nil?
@@ -83,7 +83,7 @@ class GitHubStats
   end
 
   def find_contributors(start_date, end_date, org_members)
-    contributers = {}
+    contributors = {}
     ignored_repositories = []
 
     repositories(start_date).each do |repo|
@@ -91,7 +91,7 @@ class GitHubStats
         ignored_repositories << repo.name
       else
         puts "Reading commits for #{repo.full_name}..."
-        add_contributers(contributers, repo.full_name, start_date, end_date)
+        add_contributors(contributors, repo.full_name, start_date, end_date)
       end
     end
 
@@ -99,13 +99,13 @@ class GitHubStats
       puts "", "Ignored repositories: ", ignored_repositories
     end
 
-    contributers
+    contributors
       .reject { |name| org_members.include?(name) }
       .sort_by { |_, contributor| contributor[:count] }
       .reverse
   end
 
-  def add_contributers(contributers, repo, start_date, end_date)
+  def add_contributors(contributors, repo, start_date, end_date)
     commits = @client.commits_between(repo, start_date, end_date, per_page: 100)
     last_response = @client.last_response
 
@@ -113,16 +113,21 @@ class GitHubStats
       commits.each do |commit|
         author = commit.author&.login || commit.commit.author.name
 
-        if contributers.has_key?(author)
-          contributers[author][:count] += 1
+        if contributors.has_key?(author)
+          contributors[author][:count] += 1
         else
-          contributers[author] = { count: 1, url: commit.author&.html_url, repos: {} }
+          contributors[author] = {
+            count: 1,
+            url: commit.author&.html_url,
+            repos: {
+            }
+          }
         end
 
-        if contributers[author][:repos].has_key?(repo)
-          contributers[author][:repos][repo] += 1
+        if contributors[author][:repos].has_key?(repo)
+          contributors[author][:repos][repo] += 1
         else
-          contributers[author][:repos][repo] = 1
+          contributors[author][:repos][repo] = 1
         end
       end
 
@@ -134,7 +139,7 @@ class GitHubStats
   end
 
   def format_contributor(name, contributor, verbose)
-    count = contributor[:count].to_s.rjust(3, ' ')
+    count = contributor[:count].to_s.rjust(3, " ")
     url = contributor[:url]
 
     text = url ? "#{count} [#{name}](#{url})" : "#{count} #{name}"

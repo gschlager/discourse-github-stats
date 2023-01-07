@@ -1,5 +1,5 @@
-require 'octokit'
-require 'io/console'
+require "octokit"
+require "io/console"
 
 class OctokitProvider
   def self.create
@@ -40,15 +40,15 @@ class OctokitProvider
       note = "Discourse stats script"
       options = { note: note, scopes: ["read:org"] }
 
-      if token
-        options.merge!(headers: { "X-GitHub-OTP" => token })
-      end
+      options.merge!(headers: { "X-GitHub-OTP" => token }) if token
 
-      api.authorizations(options).find do |authorization|
-        if authorization[:app][:name] == note
-          api.delete_authorization(authorization[:id], options)
+      api
+        .authorizations(options)
+        .find do |authorization|
+          if authorization[:app][:name] == note
+            api.delete_authorization(authorization[:id], options)
+          end
         end
-      end
 
       res = api.create_authorization(options)
     rescue Octokit::OneTimePasswordRequired
@@ -57,16 +57,15 @@ class OctokitProvider
     end
 
     res[:token].tap do |token|
-      FileUtils.mkpath(ENV['HOME'] + '/.discourse')
+      FileUtils.mkpath(ENV["HOME"] + "/.discourse")
       File.write(github_oauth_token_file, token)
     end
-
   rescue Octokit::Unauthorized
     STDERR.puts "\nUsername or password incorrect. Please try again.\n\n"
     return new_github_oauth_token
   end
 
   def github_oauth_token_file
-    ENV['HOME'] + '/.discourse/github_stats_oauth_token'
+    ENV["HOME"] + "/.discourse/github_stats_oauth_token"
   end
 end
