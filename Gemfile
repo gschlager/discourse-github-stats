@@ -3,5 +3,7 @@
 source "https://rubygems.org"
 
 group :development do
-  gem "rubocop-discourse", git: "https://github.com/discourse/rubocop-discourse.git"
+  gem "syntax_tree"
+  gem "syntax_tree-disable_ternary"
+  gem "rubocop-discourse"
 end
